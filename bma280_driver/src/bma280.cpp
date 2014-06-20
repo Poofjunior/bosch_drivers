@@ -52,7 +52,6 @@
 
 // ROS headers for debugging output
 #include <ros/console.h>
-
 #include "bma280_driver/bma280.hpp"
 
 
@@ -93,6 +92,9 @@ bool BMA280::setDeviceAddress( uint8_t address )
   return true;
 }
 
+
+/**********************************************************************/
+/**********************************************************************/
 uint8_t BMA280::getDeviceAddress()
 {
   // depends on the protocol:
@@ -118,12 +120,18 @@ uint8_t BMA280::getDeviceAddress()
   return 255;
 }
 
+
+/**********************************************************************/
+/**********************************************************************/
 bool BMA280::setParameters( bosch_drivers_communication_properties properties )
 {
   *communication_properties_ = properties;
   return true;
 }
 
+
+/**********************************************************************/
+/**********************************************************************/
 bool BMA280::setFrequency( unsigned int frequency )
 {
   communication_properties_->frequency = frequency;
@@ -136,27 +144,27 @@ bool BMA280::setFrequency( unsigned int frequency )
 bool BMA280::initialize()
 {
   ROS_INFO( " " );
-  ROS_INFO( "BMA280::initialize(): Device Address (hex): %x",this->getDeviceAddress() );
-  ROS_INFO( "BMA280::initialize(): Protocol:             %d",this->getProtocol() );
-  ROS_INFO( "BMA280::initialize(): Frequency:            %d",this->getFrequency() );
+  ROS_INFO( "BMA280::initialize(): Device Address (hex): %x",getDeviceAddress() );
+  ROS_INFO( "BMA280::initialize(): Protocol:             %d",getProtocol() );
+  ROS_INFO( "BMA280::initialize(): Frequency:            %d",getFrequency() );
  
   // Initialize the hardware interface
   if( hardware_->initialize() == false )
     return false;
 
   // Reset the sensor:
-  if( this->softReset() == false )
+  if( softReset() == false )
     return false;
   ROS_INFO( "BMA280::initialize(): soft reset applied." );
 
 // Disable I2C, if sensor is setup for SPI mode:
-  switch( this->getProtocol() )
+  switch( getProtocol() )
   {
   case I2C:
     break;
   case SPI:
     // disable i2c to prevent accidental malfunctions:
-    if( this->DisableI2C() == false )
+    if( DisableI2C() == false )
       return false;
     ROS_INFO( "BMA280::initialize(): Disabled I2C mode." );
     break;
@@ -166,15 +174,15 @@ bool BMA280::initialize()
   }
   
   // Enable EEPROM and Register Writing:
-  if( this->EnableWriting() == false )
+  if( EnableWriting() == false )
     return false;
   
   // Change accel_range on the sensor to match requested parameter range:
-  if( this->setAccelerationRange( accel_range_ ) == false )
+  if( setAccelerationRange( accel_range_ ) == false )
     return false;
 
   // Change bandwidth_ on the sensor to match requested parameter bandwidth:
-  if( this->changeBandwidth() == false )
+  if( changeBandwidth() == false )
     return false;
 
   ROS_INFO( "BMA280 initialized." );
@@ -185,17 +193,15 @@ bool BMA280::initialize()
 
 
 /**********************************************************************/
-// takeMeasurement
 /**********************************************************************/
 bool BMA280::takeMeasurement()
 {
   uint8_t Data[7];
-  if( this->readSensorData( ADDRESS_ACCLXYZ, Data, 7 ) == false )
+  if( readSensorData( ADDRESS_ACCLXYZ, Data, 7 ) == false )
   {
     ROS_ERROR(" BMA280::takeMeasurement(): Unable to read accelerometer data from sensor." );
     return false;
   }
-             
   // TODO: Change typecasts to functional notation!
   AccelX_ = sensitivity_ * int( ( ((int16_t)(Data[1] << 8)) | 
                                 ( ((int16_t)Data[0]) ) ) >> 2 ); // [g]
@@ -208,7 +214,6 @@ bool BMA280::takeMeasurement()
 }
 
 /**********************************************************************/
-
 /**********************************************************************/
 double BMA280::getStaticPitch()
 {
@@ -218,7 +223,6 @@ double BMA280::getStaticPitch()
 }
 
 /**********************************************************************/
-
 /**********************************************************************/
 double BMA280::getStaticRoll()
 {
@@ -263,7 +267,7 @@ double BMA280::getAccelX()
   }
   int raw_data = int(( ((int16_t)(Data[1] << 8)) | 
                      ( ((int16_t)Data[0]) ) ) >> 2);
-  AccelX_ = raw_data * this->getSensitivity();
+  AccelX_ = raw_data * getSensitivity();
 
   return AccelX_;
 }
@@ -334,17 +338,14 @@ double BMA280::getTemperature()
 bool BMA280::softReset()
 {
 // not sure why the 5th argument has to be set in this way:
-  uint8_t Request_SoftReset = (uint8_t)CMD_SOFTRESET;
+  uint8_t Request_SoftReset = CMD_SOFTRESET;
  
-  // write 0xB6 to 0x10
-  if( this->writeToReg( ADDRESS_SOFTRESET, Request_SoftReset ) == false )
+  // write 0xB6 to 0x14
+  if( writeToReg( ADDRESS_SOFTRESET, Request_SoftReset ) == false )
   {
     ROS_ERROR("BMA280::softReset(): write failed.");
     return false;
   }      
-
-  // mandatory wait --- see datasheet  page 49
-  usleep( 10 );
 
   return true;
 }
@@ -360,34 +361,6 @@ bool BMA280::calibrate()
 }
 
 
-
-
-/**********************************************************************/
-
-/**********************************************************************/
-bool BMA280::disableI2C()
-{
-  // set the LSB of ADDRESS_HIGH_DUR high.
-  uint8_t ctrl_register = (uint8_t)CMD_DISABLE_I2C;
-
-  switch( this->getProtocol() )
-  {
-  case SPI:
-    if( this->writeToReg( ADDRESS_HIGH_DUR, ctrl_register ) == false )
-    {
-      ROS_ERROR( "BMA280::DisableI2C(): write failed." );
-      return false;
-    }
-    return true;
-  default:
-    ROS_ERROR( "BMA280::DisableI2C() cannot disable i2c from this protocol." );
-  }
-  return false;
-}
-
-
-
-
 /**********************************************************************/
 
 /**********************************************************************/
@@ -396,7 +369,7 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
   uint8_t local_range;
  
   // read current accel range register value for a local copy.
-  if( this->readReg( ADDRESS_OFFSET_LSB1, &local_range ) == false )
+  if( readReg( ADDRESS_OFFSET_LSB1, &local_range ) == false )
   {
     ROS_ERROR("bma280_driver: setAccelerationRange() failed to read current range.");
     return false;
@@ -491,14 +464,14 @@ bool BMA280::changeBandwidth()
   local_bw_reg |= bandwidth_ << bw; // insert new value.
 
   // write the adjusted register value back to the sensor's register
-  if( this->writeToReg( ADDRESS_BW_TCS, local_bw_reg ) == false )
+  if( writeToReg( ADDRESS_BW_TCS, local_bw_reg ) == false )
   {
     ROS_ERROR( "BMA280::changeBandwidth(): write failed." );
     return false;
   }
  
   // read back that register to make sure that changes worked:
-  if( this->readReg( ADDRESS_BW_TCS, &local_bw_reg ) == false )
+  if( readReg( ADDRESS_BW_TCS, &local_bw_reg ) == false )
   {
     ROS_ERROR( "BMA280::changeBandwidth(): read failed." );
     return false;
@@ -520,6 +493,18 @@ bool BMA280::changeBandwidth()
  
   // if new settings are correct:
   return true;
+}
+
+
+/**********************************************************************/
+/**********************************************************************/
+bool BMA280::setOffset( axis n, double val)
+{
+    int8_t bitsPerG = (255 / 2);   /// (max byte range) / (max g range)
+    int8_t offsetRegVal = bitsPerG * val; 
+
+    /// Note: Offsets are stored sequentially in memory.
+    return writeToReg((ADDRESS_OFFSET_X + n), offsetRegVal);
 }
 
 
@@ -592,8 +577,8 @@ bool BMA280::writeToReg( uint8_t reg, uint8_t value )
 {
   std::vector<uint8_t> data(1,value);
 
-  // technically, writing depends on the protocol.
-  switch( this->getProtocol() )
+  /// Technically, writing depends on the protocol.
+  switch( getProtocol() )
   {
   case I2C:
     if( hardware_->write( *communication_properties_, reg, data ) < 0 )
@@ -603,7 +588,8 @@ bool BMA280::writeToReg( uint8_t reg, uint8_t value )
     } 
     break;
   case SPI:
-    // we must prepend the SPI_WRITE_FLAG, although, technically it's already there, since it's zero.
+    /// We must prepend the SPI_WRITE_FLAG, although, technically it's already 
+    /// there, since it's zero.
     if( hardware_->write( *communication_properties_, (~(1 << SPI_WRITE_FLAG)&reg), data) < 0 ) 
     {
       ROS_ERROR( "bma280_driver: Error writing to register via SPI!" );
@@ -691,20 +677,6 @@ bool BMA280::setProtocol( interface_protocol protocol )
   return true;
 }
 
-/**********************************************************************/
-/**********************************************************************/
-bool BMA280::setByteOrder( uint8_t value )
-{
-  // adjust the flags
-  communication_properties_->flags = ( (0xFB & communication_properties_->flags) | (value << 2) );
-  if( value > 1 )
-  {
-    ROS_ERROR("bma280_driver: Byte order must be either LSB_FIRST or MSB_FIRST");
-    return false;
-  }
-  return true;
- 
-}
 
 /**********************************************************************/
 /**********************************************************************/

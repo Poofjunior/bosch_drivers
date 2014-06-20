@@ -73,34 +73,27 @@ public:
    * I2C address (1 of 2)
    * \note BMA280 uses this I2C address if SDO is connected to VSS
    */
-  static const uint8_t SLAVE_ADDRESS0 = 0x40;
+  static const uint8_t SLAVE_ADDRESS0 = 0x18;
 
   /**
    * I2C address (2 of 2)
    * \note BMA280 uses this I2C address if SDO is connected to VDDIO
    */
-  static const uint8_t SLAVE_ADDRESS1 = 0x41; 
+  static const uint8_t SLAVE_ADDRESS1 = 0x19; 
   
-
   /**
    * \brief Write these to <3:1> in  ADDRESS_RANGE_REG to change sensitivity
    */
   enum accel_range
   {
-    /** \note ±1 [g] at 0.13 [mg/LSB] */
-    RANGE_1 = 0x00,
-    /** \note ±1.5 [g] at 0.19 [mg/LSB] */
-    RANGE_1_5 = 0x01,
-    /** \note ±2 [g] at 0.25 [mg/LSB] */  
-    RANGE_2 = 0x02,
-    /** \note ±3 [g] at 0.38 [mg/LSB] */
-    RANGE_3 = 0x03,
-    /** \note ±4 [g] at 0.50 [mg/LSB] */
-    RANGE_4 = 0x04,
-    /** \note ±8 [g] at 0.99 [mg/LSB] */
-    RANGE_8 = 0x05,
-    /** \note ±16 [g] at 1.98 [mg/LSB] */
-    RANGE_16 = 0x06
+    /** \note ±2 [g] at 0.244 [mg/LSB] */  
+    RANGE_2 = 0b0011,
+    /** \note ±4 [g] at 0.488 [mg/LSB] */
+    RANGE_4 = 0b0101,
+    /** \note ±8 [g] at 0.977 [mg/LSB] */
+    RANGE_8 = 0b1000,
+    /** \note ±16 [g] at 1.953 [mg/LSB] */
+    RANGE_16 = 0b1100 
   };
   
   /**
@@ -108,16 +101,24 @@ public:
    */
   enum bandwidth 
   {
-    BW_10,
-    BW_20,
-    BW_40,
-    BW_75,
-    BW_150,
-    BW_300,
-    BW_600,
-    BW_1200,
-    BW_HIGH_PASS,
-    BW_BAND_PASS
+    BW_7_81 = 0b1000,
+    BW_15_63 = 0b1001,
+    BW_31_25 = 0b1010,
+    BW_62_5  = 0b1011,
+    BW_125 = 0b1100,
+    BW_250 = 0b1101,
+    BW_500 = 0b1110,
+    BW_UNFILTERED = 0b10000,
+  };
+
+  /**
+   * \brief input arguments for selecting an axis
+   */
+  enum axis
+  {
+      X = 0x00,
+      Y = 0x01,
+      Z = 0x02
   };
 
 
@@ -142,7 +143,6 @@ public:
   // Preferance Adjustments
   bool calibrate();
   bool softReset();
-  bool disableI2C(); // to get bug-free SPI readings.
   
   /**
    * \brief resets the current offset values to zero
@@ -174,7 +174,14 @@ public:
   void setBandwidth( bandwidth bw );
   bool changeBandwidth();
 
-  void setPreCalOffsets( bool choice );
+/**
+ * void setOffset(axis n, double val)
+ * \brief set offset on the chip
+ * \param val is the value (in [g]s) subtracted from the raw sensor value
+ * \details this offset is written directly to the chip but deleted unless it
+ *          is first stored to NVM
+ */
+  void setOffset( axis n, double val);
   
   bool setFrequency( unsigned int frequency );
   bool setProtocol( interface_protocol protocol_name );
@@ -234,7 +241,7 @@ protected:
 
   /// Soft-Reset
   static const uint8_t ADDRESS_SOFTRESET = 0x14;
-  static const uint8_t CMD_SOFTRESET     = 0xB6;    // TODO: verify value
+  static const uint8_t CMD_SOFTRESET     = 0xB6;    
 
   /// (relevant) BITFLAGS for changing settings:
 
@@ -275,10 +282,7 @@ protected:
   bool writeToRegAndVerify( uint8_t reg, uint8_t value, uint8_t expected_value );
   bool readSensorData( uint8_t reg, uint8_t* value, uint8_t num_bytes );  
 
-  /**
-   * \brief Adjust the byte is the order of the transmission.
-   */
-  bool setByteOrder( uint8_t value );
+
   /**
    * \brief Set the SPI mode (0 -- 4).
    */

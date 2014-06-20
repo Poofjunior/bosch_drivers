@@ -44,9 +44,11 @@
 namespace bosch_drivers_common
 { 
   /**
-   * \brief An abstract class for sensor communication properties to be used by hardware interfaces.
+   * \brief An abstract class for sensor communication properties to be
+   *        used by hardware interfaces.
    *
-   * If a device requires additional communication properties, it should inherit from this class.
+   *        If a device requires additional communication properties, 
+   *        it should inherit from this class.
    */
   class bosch_drivers_communication_properties 
   {
@@ -54,7 +56,8 @@ namespace bosch_drivers_common
     /**
      * \brief The address or ID of the device.
      *
-     * For internally located devices such as GPIO or PWM drivers, this is the pin number on the hardware interface.
+     * For internally located devices such as GPIO or PWM drivers,
+     * this is the pin number on the hardware interface.
      *
      */
     uint8_t device_address;

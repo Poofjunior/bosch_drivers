@@ -300,6 +300,7 @@ protected:
    * \brief Adjust the byte is the order of the transmission.
    */
   bool setByteOrder( uint8_t value );
+
   /**
    * \brief Set the SPI mode (0 -- 4).
    */
