@@ -173,16 +173,20 @@ public:
    * \brief Set the internal filter on the sensor to the specified bandwidth.
    */
   void setBandwidth( bandwidth bw );
+
+  // TODO: implement this function
+/*
   bool changeBandwidth();
+*/
 
 /**
- * void setOffset(axis n, double val)
+ * \fn bool setOffset(axis n, double val)
  * \brief set offset on the chip
  * \param val is the value (in [g]s) subtracted from the raw sensor value
  * \details this offset is written directly to the chip but deleted unless it
  *          is first stored to NVM
  */
-  void setOffset( axis n, double val);
+  bool setOffset( axis n, double val);
   
   bool setFrequency( unsigned int frequency );
   bool setProtocol( interface_protocol protocol_name );

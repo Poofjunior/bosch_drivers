@@ -162,8 +162,11 @@ bool BMA280::initialize()
     return false;
 
   // Change bandwidth_ on the sensor to match requested parameter bandwidth:
+//TODO: re-enable this feature
+/*
   if( changeBandwidth() == false )
     return false;
+*/
 
   ROS_INFO( "BMA280 initialized." );
   sleep( .1 );
@@ -355,7 +358,7 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
     return false;
   }
  
-  ROS_DEBUG( "bma280_driver: Acceleration range bits before changing: %d.  Default:  %d", ( (local_range & (0x07 << range)) >> range), 2); // Defaults on page 27 of datasheet
+  ROS_DEBUG( "bma280_driver: Acceleration range bits before changing: %d.  Default:  %d", (local_range & 0x0F), 2); // Defaults on page 27 of datasheet
 
   /// FIXME: Change data member to reflect requested range
 
@@ -417,6 +420,7 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
 
 /**********************************************************************/
 /**********************************************************************/
+/*
 bool BMA280::changeBandwidth()
 {
   uint8_t local_bw_reg;
@@ -466,6 +470,7 @@ bool BMA280::changeBandwidth()
   // if new settings are correct:
   return true;
 }
+*/
 
 
 /**********************************************************************/
@@ -488,7 +493,7 @@ void BMA280::resetOffsets()
   uint8_t offset_rst_reg;
   readReg(ADDRESS_OFFSET_RESET, &offset_rst_reg);
   offset_rst_reg |= (1 << offset_reset_);
-  writeToReg(ADDRESS_NVM, &nvm_reg_data);
+  writeToReg(ADDRESS_NVM, offset_rst_reg);
 }
 
 /**********************************************************************/
@@ -500,11 +505,11 @@ void BMA280::saveOffsets()
   uint8_t nvm_reg_data;
   readReg(ADDRESS_NVM, &nvm_reg_data);
   nvm_reg_data |= (1 << nvm_prog_mode_);
-  writeToReg(ADDRESS_NVM, &nvm_reg_data);
+  writeToReg(ADDRESS_NVM, nvm_reg_data);
 
   readReg(ADDRESS_NVM, &nvm_reg_data);
   nvm_reg_data |= (1 << nvm_prog_trig_);
-  writeToReg(ADDRESS_NVM, &nvm_reg_data);
+  writeToReg(ADDRESS_NVM, nvm_reg_data);
 }
 
 /**********************************************************************/
@@ -687,9 +692,3 @@ double BMA280::getSensitivity()
 }
 
 
-/**********************************************************************/
-/**********************************************************************/
-void BMA280::setPreCalOffsets( bool choice )
-{
-  offsetsEnabled_ = choice;
-}
