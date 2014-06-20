@@ -116,7 +116,9 @@ uint8_t BMA280::getDeviceAddress()
     ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or 1) for I2C." );
     return 255;
   }
-  ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or 1) for I2C." );
+  ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. \
+              Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or \
+              1) for I2C." );
   return 255;
 }
 
@@ -144,7 +146,8 @@ bool BMA280::setFrequency( unsigned int frequency )
 bool BMA280::initialize()
 {
   ROS_INFO( " " );
-  ROS_INFO( "BMA280::initialize(): Device Address (hex): %x",getDeviceAddress() );
+  ROS_INFO( "BMA280::initialize(): Device Address (hex): %x",
+             getDeviceAddress());
   ROS_INFO( "BMA280::initialize(): Protocol:             %d",getProtocol() );
   ROS_INFO( "BMA280::initialize(): Frequency:            %d",getFrequency() );
  
@@ -182,7 +185,8 @@ bool BMA280::takeMeasurement()
   uint8_t Data[7];
   if( readSensorData( ADDRESS_ACCLXYZ, Data, 7 ) == false )
   {
-    ROS_ERROR(" BMA280::takeMeasurement(): Unable to read accelerometer data from sensor." );
+    ROS_ERROR(" BMA280::takeMeasurement(): Unable to read accelerometer data \
+                from sensor." );
     return false;
   }
   // TODO: Change typecasts to functional notation!
@@ -222,7 +226,8 @@ bool BMA280::getAccelData()
   uint8_t Data[6];
   if( readSensorData( ADDRESS_ACCLXYZ, Data, 6 ) == false )
   {
-    ROS_ERROR( "BMA280::getAccelData(): Unable to read accelerometer data from sensor." );
+    ROS_ERROR( "BMA280::getAccelData(): Unable to read accelerometer data \
+                from sensor." );
     return false;
   }
   AccelX_ = getSensitivity() * int( ( ((int16_t)(Data[1] << 8)) | 
@@ -354,13 +359,13 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
   // read current accel range register value for a local copy.
   if( readReg( ADDRESS_RANGE, &local_range ) == false )
   {
-    ROS_ERROR("bma280_driver: setAccelerationRange() failed to read current range.");
+    ROS_ERROR("bma280_driver: setAccelerationRange() failed to read current \
+               range.");
     return false;
   }
  
-  ROS_DEBUG( "bma280_driver: Acceleration range bits before changing: %d.  Default:  %d", (local_range & 0x0F), 2); // Defaults on page 27 of datasheet
-
-  /// FIXME: Change data member to reflect requested range
+  ROS_DEBUG( "bma280_driver: Acceleration range bits before changing: %d.  \
+              Default:  %d", (local_range & 0x0F), 2); 
 
   // add our command to change range:
   local_range &= ~0x0F; // clear old range value. Mask: b11110000
@@ -369,27 +374,32 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
   // write the adjusted register value back to the sensor's register:
   if( writeToReg( ADDRESS_RANGE, local_range ) == false )
   {
-    ROS_ERROR( "bma280_driver: setAccelerationRange() failed to write new range to sensor." );
+    ROS_ERROR( "bma280_driver: setAccelerationRange() failed to write \
+                new range to sensor." );
     return false;
   }
  
   // read back that register to make sure that changes worked:
   if( readReg( ADDRESS_RANGE, &local_range ) == false )
   {
-    ROS_ERROR( "bma280_driver: setAccelerationRange() failed to read new range from sensor." );
+    ROS_ERROR( "bma280_driver: setAccelerationRange() failed to read new \
+                range from sensor." );
     return false;
   }
  
   // Compare register values to what we expect:
   uint8_t range_actual = local_range & 0x0F; // mask: b00001111
 
-  uint8_t range_expected = uint8_t(measurement_range); // This is the value set in the properties. 
+  // This is the value set in the properties. 
+  uint8_t range_expected = uint8_t(measurement_range); 
  
-  ROS_DEBUG( "bma280_driver: Acceleration range bits after change:  %d.  Expected: %d", range_actual, range_expected );
+  ROS_DEBUG( "bma280_driver: Acceleration range bits after change:  %d.  \
+              Expected: %d", range_actual, range_expected );
  
   if( range_expected != range_actual )
   {
-    ROS_ERROR( "bma280_driver: setAccelerationRange() failed verification step." );
+    ROS_ERROR( "bma280_driver: setAccelerationRange() failed verification \
+                step." );
     return false;
   }
 
@@ -408,7 +418,7 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
   case RANGE_16:
     sensitivity_ = 0.00195313;
     break;
-  default: // shouldn't happen because input argument is only an accel_range data type.
+  default: /// shouldn't happen since input argument is of type accel_range.
     ROS_ERROR( "bma280_properties: invalid range setting." );
     return false;
   }
@@ -432,7 +442,8 @@ bool BMA280::changeBandwidth()
   }
  
   // #ifdef DEBUG
-  ROS_INFO( "Bandwidth bits before: %d.  Default:  %d", ( (local_bw_reg & (0x0F << bw)) >> bw), 4 ); // defaults on page 27
+  ROS_INFO( "Bandwidth bits before: %d.  Default:  %d", 
+            ( (local_bw_reg & 0x0F ), 4 ); // defaults on page 27
   // #endif 
  
   // add our command to change range:
@@ -458,7 +469,8 @@ bool BMA280::changeBandwidth()
   uint8_t bandwidth_expected = (uint8_t) bandwidth_; // This is the value set in the properties. 
  
   // #ifdef DEBUG
-  ROS_INFO("Bandwidth bits after:  %d.  Expected: %d", bandwidth_actual, bandwidth_expected);
+  ROS_INFO("Bandwidth bits after:  %d.  Expected: %d", 
+            bandwidth_actual, bandwidth_expected);
   // #endif 
  
   if( bandwidth_expected != bandwidth_actual )
@@ -531,7 +543,8 @@ bool BMA280::readReg( uint8_t reg, uint8_t* value )
     break;
   case SPI:
     // we must prepend the SPI_READ_FLAG.
-    if( hardware_->read( *communication_properties_, ( 1 << SPI_READ_FLAG ) | reg, data ) < 0 ) 
+    if( hardware_->read( *communication_properties_, 
+                         ( 1 << SPI_READ_FLAG ) | reg, data ) < 0 ) 
     {
       ROS_ERROR( "bma280_driver: Error reading register via SPI!" );
       return false;
@@ -567,7 +580,8 @@ bool BMA280::writeToReg( uint8_t reg, uint8_t value )
   case SPI:
     /// We must prepend the SPI_WRITE_FLAG, although, technically it's already 
     /// there, since it's zero.
-    if( hardware_->write( *communication_properties_, (~(1 << SPI_WRITE_FLAG)&reg), data) < 0 ) 
+    if( hardware_->write( *communication_properties_, 
+                          (~(1 << SPI_WRITE_FLAG)&reg), data) < 0 ) 
     {
       ROS_ERROR( "bma280_driver: Error writing to register via SPI!" );
       return false;
@@ -584,7 +598,7 @@ bool BMA280::writeToReg( uint8_t reg, uint8_t value )
 /**********************************************************************/
 // writes a byte to a register.
 /**********************************************************************/
-bool BMA280::writeToRegAndVerify( uint8_t reg, uint8_t value, uint8_t expected )
+bool BMA280::writeToRegAndVerify( uint8_t reg, uint8_t value, uint8_t expected)
 {
   uint8_t actual;
  
@@ -605,7 +619,8 @@ bool BMA280::writeToRegAndVerify( uint8_t reg, uint8_t value, uint8_t expected )
 }
 
 
-bool BMA280::readSensorData( uint8_t reg, uint8_t* sensor_data, uint8_t num_bytes )
+bool BMA280::readSensorData( uint8_t reg, uint8_t* sensor_data, 
+                             uint8_t num_bytes )
 {
   std::vector<uint8_t> data(num_bytes);
   // Reading depends on the protocol.
@@ -620,7 +635,8 @@ bool BMA280::readSensorData( uint8_t reg, uint8_t* sensor_data, uint8_t num_byte
     break;
   case SPI:
     // we must prepend the SPI_READ_FLAG.
-    if( hardware_->read( *communication_properties_, ((1 << SPI_READ_FLAG)|reg), data ) < 0 ) 
+    if( hardware_->read( *communication_properties_, 
+                         ((1 << SPI_READ_FLAG)|reg), data ) < 0 ) 
     {
       ROS_ERROR( "bma280_driver: Error reading register via SPI!" );
       return false;
@@ -660,17 +676,21 @@ bool BMA280::setProtocol( interface_protocol protocol )
 bool BMA280::setSpiMode( uint8_t mode )
 {
   // adjust the flags
-  communication_properties_->flags = ( (0xFC & communication_properties_->flags) | (mode) ); // 111111xx, where xx is the mode.
+  communication_properties_->flags = 
+                        ( (0xFC & communication_properties_->flags) | (mode) ); 
+  // 111111xx, where xx is the mode.
  
   switch( mode )
   {
   case SPI_MODE_3:
     return true;
   case SPI_MODE_0:
+    return true;
   case SPI_MODE_1:
   case SPI_MODE_2:
   default:
-    ROS_ERROR( "bma280_driver: BMA280 can only be read in SPI_MODE_3." );
+    ROS_ERROR( "bma280_driver: BMA280 can only be read in SPI_MODE_3 or \
+                SPI_MODE_0." );
     return false;
   }
 }
