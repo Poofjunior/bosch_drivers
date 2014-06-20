@@ -97,17 +97,17 @@ public:
   };
   
   /**
-   * \brief Write these to  <7:4> in ADDRESS_BWTCS to change bandwidth filter
+   * \brief Write these to  <4:0> in ADDRESS_PMU_BW to change bandwidth filter
    */
   enum bandwidth 
   {
-    BW_7_81 = 0b1000,
-    BW_15_63 = 0b1001,
-    BW_31_25 = 0b1010,
-    BW_62_5  = 0b1011,
-    BW_125 = 0b1100,
-    BW_250 = 0b1101,
-    BW_500 = 0b1110,
+    BW_7_81 = 0b01000,
+    BW_15_63 = 0b01001,
+    BW_31_25 = 0b01010,
+    BW_62_5  = 0b01011,
+    BW_125 = 0b01100,
+    BW_250 = 0b01101,
+    BW_500 = 0b01110,
     BW_UNFILTERED = 0b10000,
   };
 
@@ -169,15 +169,10 @@ public:
   double getSensitivity(); // returns sensitivity  
   //accel_range getAccelerationRange();
 
-  /**
-   * \brief Set the internal filter on the sensor to the specified bandwidth.
-   */
-  void setBandwidth( bandwidth bw );
-
-  // TODO: implement this function
-/*
-  bool changeBandwidth();
-*/
+/**
+ * \brief change bandwidth to desired bandwidth.
+ */
+  bool changeBandwidth(bandwidth bw);
 
 /**
  * \fn bool setOffset(axis n, double val)
@@ -199,7 +194,6 @@ protected:
   uint8_t slave_address_bit_;
   double sensitivity_;
   accel_range accel_range_;
-  bandwidth bandwidth_;
   bool useFilter_;
   bool offsetsEnabled_;
 
@@ -229,14 +223,9 @@ protected:
  */
   static const uint8_t ADDRESS_TEMPERATURE = 0x08; 
 
-  static const uint8_t ADDRESS_VER         = 0x00;  
-  static const uint8_t ADDRESS_STATUS_REG1 = 0x09;
-  static const uint8_t ADDRESS_STATUS_REG2 = 0x0A;
-  static const uint8_t ADDRESS_STATUS_REG3 = 0x0B;
-  static const uint8_t ADDRESS_STATUS_REG4 = 0x0C;
-
   static const uint8_t ADDRESS_RANGE = 0x0F;
 
+  static const uint8_t ADDRESS_PMU_BW = 0x10;  
 
   /// Calibration addresses NOT in EEPROM. Deleted every power cycle.
   static const uint8_t ADDRESS_OFFSET_Z    = 0x3A;
@@ -267,9 +256,6 @@ protected:
   static const uint8_t nvm_ready_     = 2; // 1 bit of data at bit  < 2 > 
   static const uint8_t nvm_load_      = 3; // 1 bit of data at bit  < 3 > 
 
-  // BitFlags: ADDRESS_BW_TCS
-  // Changing Bandwidth
-  static const uint8_t bw = 4;
  
   // BitFlags: ADDRESS_STATUS_REG1
   // Check if calibration has been completed:

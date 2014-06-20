@@ -62,16 +62,13 @@ BMA280::BMA280( bosch_hardware_interface* hw ) :
   sensor_driver( hw, EXTERNAL_DEVICE ),
   TempSlope_( 0.5 ),
   accel_range_( RANGE_2),
-  sensitivity_( 0.00025 ),
-  bandwidth_( BW_UNFILTERED),
+  sensitivity_(0.00024414),
   slave_address_bit_( 0 )
 {
   communication_properties_->device_address = SLAVE_ADDRESS0;
   communication_properties_->protocol = I2C;
   communication_properties_->frequency = 400000;
   //byte_order( MSB_FIRST ),
-  //spi_mode( SPI_MODE_3 )
-  //communication_properties_->flags = ;
 
 }
 
@@ -113,7 +110,9 @@ uint8_t BMA280::getDeviceAddress()
   case SPI:
     return communication_properties_->device_address;
   default:
-    ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or 1) for I2C." );
+    ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. \
+                Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or \
+                1) for I2C." );
     return 255;
   }
   ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. \
@@ -165,11 +164,8 @@ bool BMA280::initialize()
     return false;
 
   // Change bandwidth_ on the sensor to match requested parameter bandwidth:
-//TODO: re-enable this feature
-/*
-  if( changeBandwidth() == false )
+  if( changeBandwidth(BW_UNFILTERED) == false )
     return false;
-*/
 
   ROS_INFO( "BMA280 initialized." );
   sleep( .1 );
@@ -430,43 +426,44 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
 
 /**********************************************************************/
 /**********************************************************************/
-/*
-bool BMA280::changeBandwidth()
+
+bool BMA280::changeBandwidth( bandwidth bw)
 {
   uint8_t local_bw_reg;
   // read register with the current bandwidth flags for a local copy.
-  if( this->readReg( ADDRESS_BW_TCS, &local_bw_reg ) == false )
+  if( readReg( ADDRESS_PMU_BW, &local_bw_reg ) == false )
   {
     ROS_ERROR( "BMA280::changeBandwidth(): read failed." );
     return false;
   }
  
   // #ifdef DEBUG
+  ///FIXME: 15 is a magic number from the datasheet.
   ROS_INFO( "Bandwidth bits before: %d.  Default:  %d", 
-            ( (local_bw_reg & 0x0F ), 4 ); // defaults on page 27
+             (local_bw_reg & 0x1F ), 15 ); 
   // #endif 
  
   // add our command to change range:
-  local_bw_reg &= ~(0x0F << bw); // clear old value. Mask: b00001111
-  local_bw_reg |= bandwidth_ << bw; // insert new value.
+  local_bw_reg &= ~0x1F; /// Clear old value. Mask: b11100000
+  local_bw_reg |= bw; // Insert new value.
 
   // write the adjusted register value back to the sensor's register
-  if( writeToReg( ADDRESS_BW_TCS, local_bw_reg ) == false )
+  if( writeToReg( ADDRESS_PMU_BW, local_bw_reg ) == false )
   {
-    ROS_ERROR( "BMA280::changeBandwidth(): write failed." );
+    ROS_ERROR( "BMA280::changeBandwidth( bw ): write failed." );
     return false;
   }
  
   // read back that register to make sure that changes worked:
-  if( readReg( ADDRESS_BW_TCS, &local_bw_reg ) == false )
+  if( readReg( ADDRESS_PMU_BW, &local_bw_reg ) == false )
   {
     ROS_ERROR( "BMA280::changeBandwidth(): read failed." );
     return false;
   }
  
   // Compare register values to what we expect:
-  uint8_t bandwidth_actual = ( local_bw_reg & (0x0F << bw) ) >> bw; // mask: b11110000
-  uint8_t bandwidth_expected = (uint8_t) bandwidth_; // This is the value set in the properties. 
+  uint8_t bandwidth_actual = local_bw_reg & 0x1F; // mask: b11100000
+  uint8_t bandwidth_expected = uint8_t(bw); // This is the value set in the properties. 
  
   // #ifdef DEBUG
   ROS_INFO("Bandwidth bits after:  %d.  Expected: %d", 
@@ -482,7 +479,7 @@ bool BMA280::changeBandwidth()
   // if new settings are correct:
   return true;
 }
-*/
+
 
 
 /**********************************************************************/
@@ -675,10 +672,6 @@ bool BMA280::setProtocol( interface_protocol protocol )
 /**********************************************************************/
 bool BMA280::setSpiMode( uint8_t mode )
 {
-  // adjust the flags
-  communication_properties_->flags = 
-                        ( (0xFC & communication_properties_->flags) | (mode) ); 
-  // 111111xx, where xx is the mode.
  
   switch( mode )
   {
@@ -693,14 +686,11 @@ bool BMA280::setSpiMode( uint8_t mode )
                 SPI_MODE_0." );
     return false;
   }
-}
 
-
-/**********************************************************************/
-/**********************************************************************/
-void BMA280::setBandwidth( bandwidth bw )
-{ 
-  bandwidth_ = bw;
+  // adjust the flags
+  communication_properties_->flags = 
+                        ( (0xFC & communication_properties_->flags) | (mode) ); 
+  // 111111xx, where xx is the mode.
 }
 
 
