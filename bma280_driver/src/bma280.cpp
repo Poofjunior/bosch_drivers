@@ -63,7 +63,7 @@ BMA280::BMA280( bosch_hardware_interface* hw ) :
   TempSlope_( 0.5 ),
   accel_range_( RANGE_2),
   sensitivity_( 0.00025 ),
-  bandwidth_( BW_150 ),
+  bandwidth_( BW_UNFILTERED),
   slave_address_bit_( 0 )
 {
   communication_properties_->device_address = SLAVE_ADDRESS0;
@@ -157,26 +157,6 @@ bool BMA280::initialize()
     return false;
   ROS_INFO( "BMA280::initialize(): soft reset applied." );
 
-// Disable I2C, if sensor is setup for SPI mode:
-  switch( getProtocol() )
-  {
-  case I2C:
-    break;
-  case SPI:
-    // disable i2c to prevent accidental malfunctions:
-    if( DisableI2C() == false )
-      return false;
-    ROS_INFO( "BMA280::initialize(): Disabled I2C mode." );
-    break;
-  default: // shouldn't happen. User should know to select either SPI or I2C.
-    ROS_ERROR( "BMA280::initialize(): BMA280 cannot be read with selected protocol." );
-    return false;
-  }
-  
-  // Enable EEPROM and Register Writing:
-  if( EnableWriting() == false )
-    return false;
-  
   // Change accel_range on the sensor to match requested parameter range:
   if( setAccelerationRange( accel_range_ ) == false )
     return false;
@@ -369,7 +349,7 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
   uint8_t local_range;
  
   // read current accel range register value for a local copy.
-  if( readReg( ADDRESS_OFFSET_LSB1, &local_range ) == false )
+  if( readReg( ADDRESS_RANGE, &local_range ) == false )
   {
     ROS_ERROR("bma280_driver: setAccelerationRange() failed to read current range.");
     return false;
@@ -377,27 +357,30 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
  
   ROS_DEBUG( "bma280_driver: Acceleration range bits before changing: %d.  Default:  %d", ( (local_range & (0x07 << range)) >> range), 2); // Defaults on page 27 of datasheet
 
+  /// FIXME: Change data member to reflect requested range
+
   // add our command to change range:
-  local_range &= ~(0x07 << range); // clear old range value. Mask: b11110001
-  local_range |= (accel_range_ << range); // insert new range value.
+  local_range &= ~0x0F; // clear old range value. Mask: b11110000
+  local_range |= measurement_range; // insert new range value.
 
   // write the adjusted register value back to the sensor's register:
-  if( this->writeToReg( ADDRESS_OFFSET_LSB1, local_range ) == false )
+  if( writeToReg( ADDRESS_RANGE, local_range ) == false )
   {
     ROS_ERROR( "bma280_driver: setAccelerationRange() failed to write new range to sensor." );
     return false;
   }
  
   // read back that register to make sure that changes worked:
-  if( this->readReg( ADDRESS_OFFSET_LSB1, &local_range ) == false )
+  if( readReg( ADDRESS_RANGE, &local_range ) == false )
   {
     ROS_ERROR( "bma280_driver: setAccelerationRange() failed to read new range from sensor." );
     return false;
   }
  
   // Compare register values to what we expect:
-  uint8_t range_actual = ( local_range & (0x07 << range) ) >> range; // mask: b00001110
-  uint8_t range_expected = (uint8_t) accel_range_; // This is the value set in the properties. 
+  uint8_t range_actual = local_range & 0x0F; // mask: b00001111
+
+  uint8_t range_expected = uint8_t(measurement_range); // This is the value set in the properties. 
  
   ROS_DEBUG( "bma280_driver: Acceleration range bits after change:  %d.  Expected: %d", range_actual, range_expected );
  
@@ -407,37 +390,26 @@ bool BMA280::setAccelerationRange(accel_range measurement_range )
     return false;
   }
 
-
   // After changing the sensor, change sensitivity
   switch( measurement_range )
   {
-  case RANGE_1:
-    sensitivity_ = 0.00013;
-    break;
-  case RANGE_1_5:
-    sensitivity_ = 0.00019;
-    break;
   case RANGE_2:
-    sensitivity_ = 0.00025;
-    break;
-  case RANGE_3:
-    sensitivity_ = 0.00038;
+    sensitivity_ = 0.00024414;
     break;
   case RANGE_4:
-    sensitivity_ = 0.00050;
+    sensitivity_ = 0.00048828;
     break;
   case RANGE_8:
-    sensitivity_ = 0.00099;
+    sensitivity_ = 0.00097656;
     break;
   case RANGE_16:
-    sensitivity_ = 0.00198;
+    sensitivity_ = 0.00195313;
     break;
   default: // shouldn't happen because input argument is only an accel_range data type.
     ROS_ERROR( "bma280_properties: invalid range setting." );
     return false;
   }
 
- 
   // if new settings are correct:
   return true;
 }

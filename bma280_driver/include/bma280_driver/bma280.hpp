@@ -165,6 +165,7 @@ public:
    * \brief Set the sensing range in [g].
    */
   bool setAccelerationRange( accel_range measurement_range ); 
+
   double getSensitivity(); // returns sensitivity  
   //accel_range getAccelerationRange();
 
@@ -230,6 +231,8 @@ protected:
   static const uint8_t ADDRESS_STATUS_REG3 = 0x0B;
   static const uint8_t ADDRESS_STATUS_REG4 = 0x0C;
 
+  static const uint8_t ADDRESS_RANGE = 0x0F;
+
 
   /// Calibration addresses NOT in EEPROM. Deleted every power cycle.
   static const uint8_t ADDRESS_OFFSET_Z    = 0x3A;
@@ -259,10 +262,6 @@ protected:
   static const uint8_t nvm_prog_trig_ = 1; // 1 bit of data at bit  < 1 > 
   static const uint8_t nvm_ready_     = 2; // 1 bit of data at bit  < 2 > 
   static const uint8_t nvm_load_      = 3; // 1 bit of data at bit  < 3 > 
-
-  // BitFlags: ADDRESS_OFFSET_LSB1
-  // Changing range
-  static const uint8_t range = 1; // 3 bits of data  < 3:1 >
 
   // BitFlags: ADDRESS_BW_TCS
   // Changing Bandwidth
