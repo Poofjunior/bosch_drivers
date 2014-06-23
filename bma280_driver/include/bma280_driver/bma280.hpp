@@ -51,6 +51,7 @@
 #define BMA280_H_
 
 #include <cmath>  // for atan2
+#include <math.h>  // for remainder 
 #include <unistd.h> // for the sleep function
 
 #include <bosch_drivers_common/bosch_drivers_sensor_driver.hpp>
@@ -121,27 +122,42 @@ public:
       Z = 0x02
   };
 
+  enum axisSetting
+  {
+    Xonly = 0b01, 
+    Yonly = 0b10,
+    Zonly = 0b11,
+    XYZ   = 0b00
+  };
+
+
 
   BMA280( bosch_hardware_interface* hw ); 
 
   ~BMA280();
     
-  // Initialize the hardware interface so it can communicate with the bma280:
+/// Initialize the hardware interface so it can communicate with the bma280
   bool initialize();
    
-  // Measurement Methods
+/// Measurement Methods
   bool takeMeasurement();
   bool getAccelData();
   double getAccelX();
   double getAccelY();
   double getAccelZ();
-  double getStaticPitch(); // returns the pitch.  Measuring while moving is a bad idea, for now.
-  double getStaticRoll();  
+  double getStaticPitch(); /// returns the pitch if sensor is in a 
+                           /// fixed position on earth. 
+  double getStaticRoll();  /// returns the roll if the sensor is in a 
+                           /// fixed position on earth.
    
-  double getTemperature();
+  double getTemperature(); /// read the temperature from the onboard sensor.
   
-  // Preferance Adjustments
-  bool calibrate();
+/// Preferance Adjustments
+  /**
+   * \brief calibrate against a known orientation: {x,y,z}.
+   * \details input is the known input values in gs
+   */
+  void calibrate(double * actualVals);
   bool softReset();
   
   /**
@@ -205,7 +221,10 @@ protected:
   double StaticRoll_;  
   
   double TempSlope_;
-
+  static const double OFFSET_ULP_VAL_ = 0.0078; /// value in milliGs of 
+                                                /// unit-in-last-place of 
+                                                /// offset compensation reg.
+ 
 
   // BMA280 Register Definitions
 
@@ -226,6 +245,9 @@ protected:
   static const uint8_t ADDRESS_RANGE = 0x0F;
 
   static const uint8_t ADDRESS_PMU_BW = 0x10;  
+
+
+  static const uint8_t ADDRESS_FIFO_MODE = 0x3E;  
 
   /// Calibration addresses NOT in EEPROM. Deleted every power cycle.
   static const uint8_t ADDRESS_OFFSET_Z    = 0x3A;

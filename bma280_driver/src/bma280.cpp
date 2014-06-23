@@ -115,6 +115,7 @@ uint8_t BMA280::getDeviceAddress()
                 1) for I2C." );
     return 255;
   }
+
   ROS_ERROR( "BMA280::getDeviceAddress(): sensor has no identification. \
               Either setPin(uint8_t pin) for SPI or setSlaveAddress( 0 or \
               1) for I2C." );
@@ -244,7 +245,7 @@ double BMA280::getAccelX()
   uint8_t Data[2];
    
   // Must read LSB first.  MSB and LSB  must be read in one transaction:
-  if( readSensorData( ADDRESS_ACCLXYZ, Data, 2 ) == false )
+  if( !readSensorData( ADDRESS_ACCLXYZ, Data, 2 ) )
   {
     ROS_ERROR("BMA280: cannot read from this protocol.");
     return -9999.9;
@@ -335,13 +336,42 @@ bool BMA280::softReset()
 }
 
 
+
 /**********************************************************************/
-// perform a fine-calibration ---  see datahseet page 44.
 /**********************************************************************/
-//TODO: upgrade to BMA280
-bool BMA280::calibrate()
+//TODO: implement on the BMA280
+void BMA280::calibrate(double * actualVals)
 {
-  return true;
+  // Put sensor at a known orientation.
+  // Read raw sensor data and convert 
+  double rawVals[] = {getAccelX(), getAccelY(), getAccelZ()};
+/*
+  double rawX = getAccelX();
+  double rawY = getAccelY();
+  double rawZ = getAccelZ();
+*/
+  bool negative = 0;
+  uint8_t numUlps = 0;
+  double remain = 0;
+  double error;
+
+  // write (actual - raw) to offset reg
+  // warning: abide by modek
+  for (size_t axisIndex = 0; axisIndex < 3; ++axisIndex)
+  {
+    // Ensure error is big enough to be able to compensate for it.
+    if (!(rawVals[axisIndex] < OFFSET_ULP_VAL_))
+    {
+      error = actualVals[axisIndex];
+      negative = (error < 0); 
+      numUlps = uint8_t(error/OFFSET_ULP_VAL_);
+      remain = remainder(error, OFFSET_ULP_VAL_);
+      if(remain >= (OFFSET_ULP_VAL_/2.0))
+        ++numUlps;
+      writeToReg((ADDRESS_OFFSET_X + axisIndex), (negative << 7)|(numUlps));
+    }
+      writeToReg((ADDRESS_OFFSET_X + axisIndex), 0); 
+  }
 }
 
 
